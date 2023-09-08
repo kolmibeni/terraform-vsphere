@@ -28,7 +28,7 @@ data "vsphere_datacenter" "datacenter" {
 }
 
 data "vsphere_datastore" "datastore" {
-  name          = "datastore_10"
+  name          = "datastore_20"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
@@ -43,12 +43,12 @@ data "vsphere_resource_pool" "resource_pool" {
 }
 
 data "vsphere_network" "network" {
-  name          = "VM Network"
+  name          = "DSwitch-VM Network"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
 resource "vsphere_folder" "parent" {
-  path = "TerraformTestFolder"
+  path = "k8s-cluster"
   type = "vm"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
@@ -81,14 +81,14 @@ data "vsphere_virtual_machine" "template" {
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }
 
-resource "vsphere_virtual_machine" "test_vm" {
-  name = "TerraformTestVM"
+resource "vsphere_virtual_machine" "control_plane" {
+  name = "110-control-plane"
   resource_pool_id = data.vsphere_resource_pool.resource_pool.id
   datastore_id = data.vsphere_datastore.datastore.id
   folder = vsphere_folder.parent.path
 
   num_cpus = 2
-  memory = 1024
+  memory = 4096
 
   guest_id         = data.vsphere_virtual_machine.template.guest_id
   scsi_type        = data.vsphere_virtual_machine.template.scsi_type
@@ -110,11 +110,11 @@ resource "vsphere_virtual_machine" "test_vm" {
     template_uuid = data.vsphere_virtual_machine.template.id
     customize {
       linux_options {
-        host_name = "hello-world"
-        domain    = "example.com"
+        host_name = "control-plane"
+        domain    = "control-plane"
       }
       network_interface {
-        ipv4_address = "192.168.119.160"
+        ipv4_address = "192.168.119.110"
         ipv4_netmask = 24
       }
       ipv4_gateway = "192.168.119.1"
@@ -123,4 +123,46 @@ resource "vsphere_virtual_machine" "test_vm" {
 
 }
   
+
+# resource "vsphere_virtual_machine" "ansible_server" {
+#   name = "120-ansible-server"
+#   resource_pool_id = data.vsphere_resource_pool.resource_pool.id
+#   datastore_id = data.vsphere_datastore.datastore.id
+#   folder = vsphere_folder.parent.path
+
+#   num_cpus = 2
+#   memory = 4096
+
+#   guest_id         = data.vsphere_virtual_machine.template.guest_id
+#   scsi_type        = data.vsphere_virtual_machine.template.scsi_type
+
+#   wait_for_guest_net_timeout = 0
+
+#   disk {
+#     label = "disk0"
+#     size             = data.vsphere_virtual_machine.template.disks.0.size
+#     thin_provisioned = data.vsphere_virtual_machine.template.disks.0.thin_provisioned
+#   }
+
+#   network_interface {
+#     network_id = data.vsphere_network.network.id
+#     adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]  
+#   }
+
+#   clone {
+#     template_uuid = data.vsphere_virtual_machine.template.id
+#     customize {
+#       linux_options {
+#         host_name = "ansible-server"
+#         domain    = "ansible-server"
+#       }
+#       network_interface {
+#         ipv4_address = "192.168.119.120"
+#         ipv4_netmask = 24
+#       }
+#       ipv4_gateway = "192.168.119.1"
+#     }
+#   }
+
+# }
   
